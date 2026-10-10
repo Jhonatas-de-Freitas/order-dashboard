@@ -20,6 +20,9 @@ export default tseslint.config(
     extends: [reactHooks.configs.flat.recommended, jsxA11y.flatConfigs.recommended],
   },
   { files: ['*.config.{js,ts}', 'tests/e2e/**'], languageOptions: { globals: globals.node } },
-  { files: ['eslint.config.js'], extends: [tseslint.configs.disableTypeChecked] },
+  {
+    files: ['eslint.config.js', 'public/config.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
   prettier,
 );
