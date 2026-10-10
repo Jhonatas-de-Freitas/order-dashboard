@@ -5,7 +5,7 @@ import { describeError } from '../lib/errors';
 import { Button } from './Button';
 
 export function Skeleton({ className }: { className?: string }) {
-  return <span className={cx('block animate-skeleton rounded-sm bg-sunken', className)} />;
+  return <span className={cx('block animate-skeleton rounded-sm bg-line', className)} />;
 }
 
 /** Wraps the placeholder of a region that is still loading, so it is announced once. */

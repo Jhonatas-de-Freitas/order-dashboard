@@ -110,12 +110,13 @@ function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {/* Takes what is left of the row and shrinks: a long name is cut, it does not wrap. */}
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2">
           <button
             type="button"
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-            className="grid size-10 place-items-center rounded-md text-band-muted hover:text-band-ink"
+            className="grid size-10 shrink-0 place-items-center rounded-md text-band-muted hover:text-band-ink"
           >
             {theme === 'dark' ? (
               <Sun aria-hidden className="size-5" />
@@ -123,14 +124,16 @@ function Header() {
               <Moon aria-hidden className="size-5" />
             )}
           </button>
-          <p className="px-1 text-right leading-tight sm:px-2">
-            <span className="block text-sm font-semibold">{user.name}</span>
+          <p className="min-w-0 px-1 text-right leading-tight sm:px-2">
+            <span title={user.name} className="block truncate text-sm font-semibold">
+              {user.name}
+            </span>
             <span className="type-narrow block text-xs text-band-muted">{roleLabel(user)}</span>
           </p>
           <button
             type="button"
             onClick={signOut}
-            className="type-narrow flex h-10 items-center gap-2 rounded-md px-2 text-band-muted hover:text-band-ink"
+            className="type-narrow flex h-10 shrink-0 items-center gap-2 rounded-md px-2 text-band-muted hover:text-band-ink"
           >
             <LogOut aria-hidden className="size-5" />
             <span className="sr-only sm:not-sr-only">Sair</span>
@@ -177,7 +180,7 @@ function DemoStrip({ demo }: { demo: DemoBackend }) {
                   checked={user?.id === persona.id}
                   onChange={() => demo.session.signInAs(persona)}
                 />
-                <span className="type-narrow block cursor-pointer rounded-sm px-2.5 py-0.5 text-ink-muted peer-checked:bg-action peer-checked:text-action-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2">
+                <span className="type-narrow block cursor-pointer rounded-sm px-2.5 py-0.5 text-ink-muted peer-checked:bg-action peer-checked:text-action-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(color:--focus)">
                   {isAdmin(persona) ? 'Admin' : `${persona.name.split(' ')[0]} (cliente)`}
                 </span>
               </label>

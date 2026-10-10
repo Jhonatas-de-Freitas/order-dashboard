@@ -121,6 +121,83 @@ test('admin role in the token opens the admin screens', async ({ page }) => {
   expect(gateway.calls(`PUT /api/products/${keyboard.id}/stock`)).toBe(1);
 });
 
+test('fits a phone screen with the long name and e-mail of a real account', async ({ page }) => {
+  // The demo people have short names; accounts from Keycloak can have anything.
+  const account = {
+    ...ana,
+    name: 'Maria Aparecida dos Santos Albuquerque Ferreira',
+    email: 'maria.aparecida.albuquerque.ferreira@empresa-exemplo.com.br',
+  };
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockKeycloak(page, account);
+  await mockGateway(page, {
+    'GET /api/products': () => ({ json: [keyboard] }),
+    [`GET /api/orders/${ORDER_ID}`]: () => ({
+      json: {
+        ...summary('CONFIRMED'),
+        customerName: account.name,
+        customerEmail: account.email,
+        cancellationReason: null,
+        cancellationDetail: null,
+        items: [
+          { productId: keyboard.id, productName: keyboard.name, quantity: 2, unitPrice: 349.9 },
+        ],
+        history: [
+          { status: 'PENDING', occurredAt: '2026-10-10T14:03:22.123Z', detail: 'Pedido recebido' },
+          { status: 'CONFIRMED', occurredAt: '2026-10-10T14:03:26.512Z', detail: 'Confirmado' },
+        ],
+      },
+    }),
+    'GET /api/notifications': () => ({
+      json: pageOf([
+        {
+          id: 'n-1',
+          userId: account.sub,
+          orderId: ORDER_ID,
+          channel: 'EMAIL',
+          template: 'ORDER_CONFIRMED',
+          recipient: { name: account.name, email: account.email, phone: null, deviceToken: null },
+          subject: 'Seu pedido foi confirmado',
+          status: 'SENT',
+          attempts: [{ number: 1, at: '2026-10-10T14:03:27Z', success: true, error: null }],
+          scheduledAt: null,
+          sentAt: '2026-10-10T14:03:27Z',
+          createdAt: '2026-10-10T14:03:27Z',
+        },
+      ]),
+    }),
+  });
+
+  await signIn(page, `/pedidos/${ORDER_ID}`);
+
+  await expect(page.getByText(`E-mail para ${account.email}`)).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  // The name is cut short instead of pushing the theme button to a second row.
+  const banner = page.getByRole('banner');
+  const theme = await banner.getByRole('button', { name: /Usar tema/ }).boundingBox();
+  const signOut = await banner.getByRole('button', { name: 'Sair' }).boundingBox();
+  expect(theme?.y).toBe(signOut?.y);
+});
+
+test('keeps the catalog placeholder inside a phone screen while the gateway is slow', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockKeycloak(page);
+  await mockGateway(page, { 'GET /api/products': () => 'hang' });
+
+  await signIn(page);
+
+  await expect(page.getByRole('status', { name: 'Carregando o catálogo' })).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
 test('renews the token when the gateway refuses it and carries on', async ({ page }) => {
   const keycloak = await mockKeycloak(page);
   const gateway = await mockGateway(page, {

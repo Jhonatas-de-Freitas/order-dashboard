@@ -83,9 +83,23 @@ export function OrderDetailPage() {
         {back}
         <PageHeader title={title} />
         <Loading label="Carregando o pedido">
-          <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
-            <Skeleton className="h-80 rounded-lg" />
-            <Skeleton className="h-80 rounded-lg" />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+            <div className="sheet grid gap-7 px-5 py-5 sm:px-6">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <Skeleton className="size-8 shrink-0 rounded-full" />
+                  <Skeleton className="h-5 w-40 max-w-full" />
+                </div>
+              ))}
+            </div>
+            <div className="sheet divide-y divide-line">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="px-5 py-4 sm:px-6">
+                  <Skeleton className="h-5 w-48 max-w-full" />
+                  <Skeleton className="mt-2 h-4 w-64 max-w-full" />
+                </div>
+              ))}
+            </div>
           </div>
         </Loading>
       </>
@@ -140,14 +154,15 @@ export function OrderDetailPage() {
         </p>
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      {/* Explicit columns: an implicit one grows with its content and pushes the page sideways. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
         <Panel title="Andamento">
           <div className="px-5 py-5 sm:px-6">
-            <OrderTimeline steps={orderSteps(data, payment.data ?? null)} />
+            <OrderTimeline steps={orderSteps(data, payment.data ?? null, products.data)} />
           </div>
         </Panel>
 
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <Panel title="Itens">
             <Items order={data} catalog={products.data ?? []} />
           </Panel>
@@ -243,7 +258,9 @@ function PaymentSummary({ order, payment }: { order: Order; payment: Payment | n
           ? 'Não houve cobrança: o pedido foi cancelado antes do pagamento.'
           : isFinal(order.status)
             ? 'Não há registro de cobrança para este pedido.'
-            : 'A cobrança acontece assim que o estoque for reservado.'}
+            : order.status === 'STOCK_RESERVED'
+              ? 'Estoque reservado. Cobrando o pagamento…'
+              : 'A cobrança acontece assim que o estoque for reservado.'}
       </p>
     );
   }
@@ -288,9 +305,15 @@ function Notifications({ sent }: { sent: Notification[] }) {
       </p>
     );
   }
+  // The contract leaves the order of this list open and the service answers newest
+  // first. Oldest first reads like the timeline beside it.
+  const oldestFirst = [...sent].sort(
+    (a, b) =>
+      Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.channel.localeCompare(b.channel),
+  );
   return (
     <ul className="divide-y divide-line">
-      {sent.map((notification) => {
+      {oldestFirst.map((notification) => {
         const { icon: Icon, label } = CHANNEL[notification.channel];
         const status = NOTIFICATION_STATUS[notification.status];
         const destination =
@@ -306,7 +329,7 @@ function Notifications({ sent }: { sent: Notification[] }) {
               <p className="font-semibold">
                 {notification.subject ?? TEMPLATE[notification.template]}
               </p>
-              <p className="truncate text-sm text-ink-muted">
+              <p className="text-sm wrap-anywhere text-ink-muted">
                 {label}
                 {destination && ` para ${destination}`}
                 {notification.attempts.length > 1 &&

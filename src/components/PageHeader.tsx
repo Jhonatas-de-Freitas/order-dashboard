@@ -15,9 +15,11 @@ export function PageHeader({
 
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 sm:mb-8">
-      <div>
+      <div className="min-w-0">
         <h1 className="type-wide text-2xl sm:text-3xl">{title}</h1>
-        {description && <p className="mt-1 max-w-[64ch] text-ink-muted">{description}</p>}
+        {description && (
+          <p className="mt-1 max-w-[64ch] wrap-anywhere text-ink-muted">{description}</p>
+        )}
       </div>
       {children}
     </header>

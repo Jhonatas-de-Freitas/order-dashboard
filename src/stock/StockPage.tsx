@@ -67,6 +67,7 @@ function StockRow({ product }: { product: Product }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const fieldId = useId();
+  const hintId = `${fieldId}-hint`;
   const [value, setValue] = useState(String(product.availableQuantity));
 
   // Orders move the stock while this screen is open; the field follows the server.
@@ -121,7 +122,7 @@ function StockRow({ product }: { product: Product }) {
           </p>
         </div>
       </div>
-      <form onSubmit={submit} className="flex items-center gap-2">
+      <form onSubmit={submit} className="flex flex-wrap items-center justify-end gap-2">
         <label htmlFor={fieldId} className="type-narrow text-sm text-ink-muted">
           Saldo<span className="sr-only"> de {product.name}</span>
         </label>
@@ -134,6 +135,7 @@ function StockRow({ product }: { product: Product }) {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           aria-invalid={!valid}
+          aria-describedby={valid ? undefined : hintId}
           className="h-10 w-24 rounded-md border border-line-strong bg-surface px-3 text-right tabular-nums aria-invalid:border-tone-solid"
           data-tone={valid ? undefined : 'cancelled'}
         />
@@ -145,6 +147,11 @@ function StockRow({ product }: { product: Product }) {
         >
           {save.isPending ? 'Salvando…' : 'Salvar'}
         </Button>
+        {!valid && (
+          <p id={hintId} data-tone="cancelled" className="basis-full text-right text-sm text-tone">
+            Use um número inteiro a partir de 0.
+          </p>
+        )}
       </form>
     </li>
   );

@@ -118,10 +118,30 @@ describe('error state, one per screen', () => {
 });
 
 describe('loading and empty states', () => {
+  const never = () => new Promise<never>(() => {});
+
   it('showsPlaceholdersWhileOrdersLoad', () => {
-    renderApp({ api: stubApi({ listOrders: () => new Promise(() => {}) }), route: '/pedidos' });
+    renderApp({ api: stubApi({ listOrders: never }), route: '/pedidos' });
 
     expect(screen.getByRole('status', { name: 'Carregando os pedidos' })).toBeInTheDocument();
+  });
+
+  it('showsPlaceholdersWhileEachOfTheOtherScreensLoads', async () => {
+    const screens = [
+      { route: '/', label: 'Carregando o catálogo', api: { listProducts: never } },
+      {
+        route: `/pedidos/${confirmedOrder.id}`,
+        label: 'Carregando o pedido',
+        api: { getOrder: never },
+      },
+      { route: '/indicadores', label: 'Carregando os indicadores', api: { getSummary: never } },
+      { route: '/estoque', label: 'Carregando os produtos', api: { listProducts: never } },
+    ];
+    for (const { route, label, api } of screens) {
+      const { unmount } = renderApp({ api: stubApi(api), user: admin, route });
+      expect(await screen.findByRole('status', { name: label })).toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('invitesToTheShopWhenThereAreNoOrders', async () => {
@@ -142,6 +162,22 @@ describe('loading and empty states', () => {
     renderApp();
 
     expect(await screen.findByText('Nenhum produto no catálogo')).toBeInTheDocument();
+  });
+
+  it('saysWhenThereAreNoProductsToAdjust', async () => {
+    renderApp({ user: admin, route: '/estoque' });
+
+    expect(await screen.findByText('Nenhum produto cadastrado')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Atualizar' })).toBeInTheDocument();
+  });
+
+  it('saysWhenTheOrderHasNoNotificationsYet', async () => {
+    renderApp({
+      api: stubApi({ getOrder: () => Promise.resolve(confirmedOrder) }),
+      route: `/pedidos/${confirmedOrder.id}`,
+    });
+
+    expect(await screen.findByText(/Nenhuma notificação ainda/)).toBeInTheDocument();
   });
 
   it('saysWhenThereIsNothingToSummarize', async () => {
@@ -390,6 +426,70 @@ describe('order detail', () => {
     expect(within(notifications).getByText('E-mail para ana@exemplo.com')).toBeInTheDocument();
     expect(within(notifications).getByText('Enviada')).toBeInTheDocument();
   });
+
+  it('listsNotificationsOldestFirstWhileTheServiceAnswersNewestFirst', async () => {
+    const notification = (id: string, subject: string, createdAt: string) => ({
+      id,
+      userId: 'c-1001',
+      orderId: confirmedOrder.id,
+      channel: 'EMAIL' as const,
+      template: 'GENERIC' as const,
+      recipient: { name: 'Ana Souza', email: 'ana@exemplo.com', phone: null, deviceToken: null },
+      subject,
+      status: 'SENT' as const,
+      attempts: [],
+      scheduledAt: null,
+      sentAt: createdAt,
+      createdAt,
+    });
+    const api = stubApi({
+      getOrder: () => Promise.resolve(confirmedOrder),
+      listNotifications: () =>
+        Promise.resolve(
+          pageOf([
+            notification('n-2', 'Seu pedido foi confirmado', '2026-10-10T14:03:26.000Z'),
+            notification('n-1', 'Recebemos o seu pedido', '2026-10-10T14:03:22.000Z'),
+          ]),
+        ),
+    });
+    renderApp({ api, route: `/pedidos/${confirmedOrder.id}` });
+
+    const notifications = await screen.findByRole('region', { name: 'Notificações' });
+    await within(notifications).findByText('Recebemos o seu pedido');
+    expect(
+      within(notifications)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      expect.stringContaining('Recebemos o seu pedido'),
+      expect.stringContaining('Seu pedido foi confirmado'),
+    ]);
+  });
+
+  it('namesTheProductThatWasOutOfStockWhereTheServiceWroteItsId', async () => {
+    const detail = `${headset.id}: pedido 1, disponível 0`;
+    const api = stubApi({
+      listProducts: () => Promise.resolve([keyboard, headset]),
+      getOrder: () =>
+        Promise.resolve({
+          ...confirmedOrder,
+          status: 'CANCELLED',
+          totalAmount: null,
+          cancellationReason: 'OUT_OF_STOCK',
+          cancellationDetail: detail,
+          history: [
+            ...confirmedOrder.history.slice(0, 1),
+            { status: 'CANCELLED', occurredAt: '2026-10-10T14:03:24.000Z', detail },
+          ],
+        }),
+    });
+    renderApp({ api, route: `/pedidos/${confirmedOrder.id}` });
+
+    const timeline = await screen.findByRole('list', { name: 'Andamento do pedido' });
+    expect(
+      await within(timeline).findByText('Headset USB: pedido 1, disponível 0'),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('stock', () => {
@@ -421,6 +521,7 @@ describe('stock', () => {
     await userEvent.type(field, '-3');
 
     expect(field).toBeInvalid();
+    expect(field).toHaveAccessibleDescription('Use um número inteiro a partir de 0.');
     expect(screen.getByRole('button', { name: 'Salvar saldo de Headset USB' })).toBeDisabled();
   });
 });

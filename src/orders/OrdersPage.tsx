@@ -19,8 +19,10 @@ import { StatusBadge } from './StatusBadge';
 
 const PAGE_SIZE = 10;
 
+// A table only from 1024 px on: below that the six columns do not fit side by side,
+// and each order is a card.
 const COLUMNS =
-  'md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_4.5rem_8rem_6.5rem_10.5rem] md:items-center md:gap-x-6';
+  'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_4.5rem_8rem_6.5rem_10.5rem] lg:items-center lg:gap-x-6';
 
 export function OrdersPage() {
   const api = useApi();
@@ -138,7 +140,7 @@ export function OrdersPage() {
             <div
               aria-hidden
               className={cx(
-                'type-narrow hidden border-b border-line px-6 py-3 text-sm text-ink-muted md:grid',
+                'type-narrow hidden border-b border-line px-6 py-3 text-sm text-ink-muted lg:grid',
                 COLUMNS,
               )}
             >
@@ -238,7 +240,7 @@ function OrderRow({
       <Link
         to={`/pedidos/${order.id}`}
         className={cx(
-          'grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 px-5 py-4 -outline-offset-2 hover:bg-sunken/50 md:px-6 md:py-3',
+          'grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 px-5 py-4 -outline-offset-2 hover:bg-sunken/50 sm:px-6 lg:py-3',
           COLUMNS,
         )}
       >
@@ -248,14 +250,14 @@ function OrderRow({
             <span className="block truncate text-sm text-ink-muted">{order.customerName}</span>
           )}
         </span>
-        <span className="col-start-1 row-start-3 text-sm text-ink-muted tabular-nums md:col-start-2 md:row-start-1 md:text-base md:text-ink">
+        <span className="col-start-1 row-start-3 text-sm whitespace-nowrap text-ink-muted tabular-nums lg:col-start-2 lg:row-start-1 lg:text-base lg:text-ink">
           {formatRecent(order.createdAt)}
         </span>
-        <span className="col-start-2 row-start-3 text-right text-sm text-ink-muted tabular-nums md:col-start-3 md:row-start-1 md:text-left md:text-base md:text-ink">
+        <span className="col-start-2 row-start-3 text-right text-sm text-ink-muted tabular-nums lg:col-start-3 lg:row-start-1 lg:text-left lg:text-base lg:text-ink">
           {order.itemCount}
-          <span className="md:sr-only"> {order.itemCount === 1 ? 'item' : 'itens'}</span>
+          <span className="lg:sr-only"> {order.itemCount === 1 ? 'item' : 'itens'}</span>
         </span>
-        <span className="col-start-2 row-start-1 text-right font-semibold tabular-nums md:col-start-4">
+        <span className="col-start-2 row-start-1 text-right font-semibold tabular-nums lg:col-start-4">
           {order.totalAmount === null ? (
             <span className="font-normal text-ink-subtle">
               <span aria-hidden>—</span>
@@ -265,10 +267,10 @@ function OrderRow({
             formatMoney(order.totalAmount)
           )}
         </span>
-        <span className="col-start-1 row-start-2 flex items-center md:col-start-5 md:row-start-1">
+        <span className="col-start-1 row-start-2 flex items-center lg:col-start-5 lg:row-start-1">
           <OrderTrack order={order} />
         </span>
-        <span className="col-start-2 row-start-2 justify-self-end md:col-start-6 md:row-start-1 md:justify-self-start">
+        <span className="col-start-2 row-start-2 justify-self-end lg:col-start-6 lg:row-start-1 lg:justify-self-start">
           <StatusBadge status={order.status} />
         </span>
       </Link>
@@ -281,7 +283,7 @@ function OrdersSkeleton() {
     <Loading label="Carregando os pedidos">
       <ul className="divide-y divide-line">
         {Array.from({ length: 6 }, (_, index) => (
-          <li key={index} className="flex items-center justify-between gap-4 px-5 py-4 md:px-6">
+          <li key={index} className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
             <div>
               <Skeleton className="h-5 w-28" />
               <Skeleton className="mt-2 h-4 w-40" />

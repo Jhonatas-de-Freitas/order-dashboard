@@ -65,7 +65,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-for (const width of [360, 1440]) {
+// 768 and 1024 are where the layouts switch, the widths most likely to squeeze something.
+for (const width of [360, 768, 1024, 1440]) {
   test(`main screens fit a ${width}px wide window without sideways scrolling`, async ({ page }) => {
     test.slow();
     await page.setViewportSize({ width, height: 800 });
