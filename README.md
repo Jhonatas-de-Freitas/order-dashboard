@@ -6,47 +6,61 @@
 
 O painel web de uma loja fictícia. Nele eu faço um pedido e acompanho o que acontece depois: o estoque é reservado, o pagamento é cobrado e o pedido é confirmado ou cancelado. A tela muda sozinha, sem recarregar.
 
-É a parte visível de um sistema com mais quatro repositórios (`order-platform`, `api-gateway`, `notification-service` e `order-analytics`). Para ninguém precisar subir tudo isso só para olhar, o painel tem um modo demonstração: um backend simulado roda dentro do navegador e segue as mesmas regras do sistema de verdade.
+É a parte visível de um sistema com mais quatro repositórios: [order-platform](https://github.com/Jhonatas-de-Freitas/order-platform), [api-gateway](https://github.com/Jhonatas-de-Freitas/api-gateway), [notification-service](https://github.com/Jhonatas-de-Freitas/notification-service) e [order-analytics](https://github.com/Jhonatas-de-Freitas/order-analytics). Para ninguém precisar subir tudo isso só para olhar, o painel tem dois modos:
 
-Telas:
+- **Demonstração** (o padrão): um backend simulado roda dentro do navegador e segue as mesmas regras do sistema de verdade.
+- **Real**: fala com o `api-gateway` e faz login no Keycloak.
 
-- **Loja**: catálogo, carrinho e finalizar pedido.
-- **Pedidos**: lista com o estado de cada pedido, ao vivo, com filtro por estado.
-- **Detalhe do pedido**: linha do tempo, itens, pagamento e notificações enviadas.
-- **Indicadores** (admin): totais, faturamento por dia, pedidos por estado, motivos de cancelamento e produtos mais vendidos.
-- **Estoque** (admin): ajuste do saldo de cada produto.
+Endereço da demonstração: https://jhonatas-de-freitas.github.io/order-dashboard/ (quem publica é o job `deploy` do CI, a cada push na `main`).
+
+![Lista de pedidos com um pedido recebido, um com estoque reservado e os demais confirmados](docs/pedidos.png)
+
+| Loja                                                    | Detalhe do pedido                                                                                                                                                                       |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Catálogo e o pedido em forma de cupom](docs/loja.png) | ![Linha do tempo, itens, pagamento e notificações](docs/pedido.png)                                                                                                                     |
+| **Indicadores, no tema escuro**                         | **No celular**                                                                                                                                                                          |
+| ![Cartões e faturamento por dia](docs/indicadores.png)  | <img src="docs/celular-pedidos.png" alt="Lista de pedidos em 360 px" width="48%"> <img src="docs/celular-pedido.png" alt="Pedido cancelado por falta de estoque em 360 px" width="48%"> |
+
+Telas: **Loja** (catálogo, carrinho e finalizar), **Pedidos** (lista ao vivo, com filtro por estado), **Detalhe do pedido** (linha do tempo, itens, pagamento e notificações) e, para quem é admin, **Indicadores** e **Estoque**.
 
 ## Como funciona
 
-As telas não sabem de onde vêm os dados. Elas falam com uma interface só, `StoreApi` (`src/api/store-api.ts`), e quem responde é escolhido na partida.
+As telas não sabem de onde vêm os dados. Elas falam com uma interface só, `StoreApi` (`src/api/store-api.ts`), e com uma `Session` que diz quem está logado. Quem responde é escolhido na partida (`src/main.tsx`).
 
 ```mermaid
 flowchart LR
   T[Telas React] --> Q[TanStack Query]
   Q --> A{{StoreApi}}
-  A --> D[Demonstração: simulação no navegador]
-  A -.-> R[Real: api-gateway + Keycloak]
+  T --> S{{Session}}
 
-  subgraph Simulação
-    D --> O[pedidos]
-    O -- OrderCreated --> I[estoque]
-    I -- StockReserved --> P[pagamento]
-    P -- PaymentApproved / PaymentRefused --> O
-    I -- StockRejected --> O
-    O -- OrderConfirmed / OrderCancelled --> N[notificações]
-    O -. todos os eventos .-> M[indicadores]
+  A --> D[Simulação no navegador]
+  S --> P[Ana ou Admin, sem senha]
+
+  A --> G[Cliente HTTP]
+  G -- "Bearer + JSON" --> GW[api-gateway :8080]
+  GW -- "SSE: order-updated" --> G
+  S --> O[oidc-client-ts]
+  O -- "código + PKCE" --> KC[Keycloak :8180]
+  O -. token .-> G
+
+  subgraph Demonstração
+    D
+    P
+  end
+  subgraph Real
+    G
+    O
   end
 ```
 
-Na simulação (`src/api/demo`), cada serviço tem as suas tabelas e só conversa com os outros por eventos, com o mesmo formato e os mesmos nomes do contrato do sistema. Cada reação é uma tarefa com hora marcada. Isso dá três coisas com o mesmo código:
+**Na demonstração** (`src/api/demo`), cada serviço tem as suas tabelas e só conversa com os outros por eventos, com os mesmos nomes e campos do sistema de verdade. Cada reação é uma tarefa com hora marcada. Com isso o pedido anda ao vivo, continua de onde parou se eu recarrego a página, e o histórico de 14 dias da primeira visita é gerado passando pedidos antigos pelas mesmas regras. Os indicadores são calculados, não são números fixos.
 
-- o pedido anda ao vivo, em alguns segundos, por temporizador;
-- se eu recarrego a página no meio, o que estava pendente continua de onde parou (o estado fica no `sessionStorage`);
-- o histórico de 14 dias que aparece na primeira visita é montado passando pedidos antigos pelas mesmas regras, então os indicadores são calculados, não são números fixos.
+**No modo real** (`src/api/gateway` e `src/auth/oidc-session.ts`):
 
-Quando o estado de um pedido muda, o painel recebe um aviso, busca de novo o que está na tela e anuncia a mudança para leitores de tela. Se o aviso parar de chegar, as listas passam a consultar a cada 5 segundos.
-
-O modo real (falar com o `api-gateway` e fazer login no Keycloak) ainda não está neste repositório. A interface já foi desenhada para ele: os tipos em `src/api/types.ts` são os do contrato.
+- O login é no Keycloak, com código de autorização e PKCE. Depois do login a pessoa volta para o endereço que tinha pedido.
+- Toda chamada leva o token. Se ele venceu, é renovado antes. Se o gateway responde `401`, o painel renova uma vez e repete a chamada; se não der, encerra a sessão e volta para a tela de entrada.
+- `403`, `429` e `503` chegam como erro com o corpo `problem+json` do gateway, e cada tela mostra o aviso certo com o botão de tentar de novo.
+- A lista ao vivo lê `GET /api/orders/stream` com `fetch`, porque o `EventSource` do navegador não deixa mandar o cabeçalho `Authorization`. Se a conexão cai ou fica muda por 45 segundos, o painel avisa, passa a consultar a cada 5 segundos e tenta reconectar com intervalos crescentes.
 
 ## Como rodar
 
@@ -57,18 +71,37 @@ npm install
 npm run dev
 ```
 
-Abre em `http://localhost:5173`, já no modo demonstração. Não precisa de mais nada rodando.
+Abre em `http://localhost:5173`, já na demonstração. Não precisa de mais nada rodando.
 
-Para ver a versão de produção:
+**Modo real.** Precisa do `api-gateway` em `localhost:8080` e do Keycloak em `localhost:8180` (o `docker compose` do api-gateway sobe os dois; o sistema completo fica na pasta `full-stack` do order-platform). Copie `.env.example` para `.env`, troque para `VITE_DEMO_MODE=false` e rode `npm run dev`. Usuários: `ana` / `demo123` (cliente) e `admin` / `admin123`.
+
+**Docker.** A imagem serve o build com nginx na porta 5173.
 
 ```bash
-npm run build
-npm run preview
+docker compose up --build
 ```
+
+As variáveis são lidas quando o container sobe, então a mesma imagem serve em qualquer ambiente:
+
+```bash
+docker run --rm -p 5173:5173 \
+  -e VITE_DEMO_MODE=false \
+  -e VITE_API_URL=http://localhost:8080 \
+  -e VITE_KEYCLOAK_URL=http://localhost:8180 \
+  ghcr.io/jhonatas-de-freitas/order-dashboard
+```
+
+| Variável                  | Padrão                  | Para quê                                                                |
+| ------------------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `VITE_DEMO_MODE`          | `true`                  | `false` liga o modo real                                                |
+| `VITE_API_URL`            | `http://localhost:8080` | endereço do api-gateway, visto do navegador                             |
+| `VITE_KEYCLOAK_URL`       | `http://localhost:8180` | endereço do Keycloak, visto do navegador                                |
+| `VITE_KEYCLOAK_REALM`     | `store`                 | realm                                                                   |
+| `VITE_KEYCLOAK_CLIENT_ID` | `store-web`             | cliente público, com `http://localhost:5173/*` como endereço de retorno |
 
 ## Como testar os cenários
 
-No topo da página dá para trocar entre **Ana (cliente)** e **Admin**, sem senha. **Recomeçar** apaga o que eu fiz e volta ao ponto de partida.
+Na demonstração, no topo da página dá para trocar entre **Ana (cliente)** e **Admin**. **Recomeçar** volta ao ponto de partida.
 
 1. **Pedido confirmado.** Na Loja, some um Teclado Mecânico e finalize. Em Pedidos, a linha nova aparece como "Recebido", passa por "Estoque reservado" e termina "Confirmado".
 2. **Sem estoque.** Peça um Headset USB (saldo zero). Termina "Cancelado", com o motivo "sem estoque" no detalhe.
@@ -78,32 +111,49 @@ No topo da página dá para trocar entre **Ana (cliente)** e **Admin**, sem senh
 6. **Ajuste de saldo.** Como Admin, em Estoque, mude o saldo do Headset para 5 e peça de novo: agora confirma.
 7. **Indicadores.** Como Admin, veja os números antes e depois de fazer pedidos.
 
-Os testes automáticos cobrem os mesmos cenários:
+Com o container no ar, dá para conferir pelo terminal o que o nginx entrega:
 
 ```bash
-npm run lint          # ESLint
-npm run typecheck     # tsc
-npm test              # Vitest: regras da simulação e telas
-npx playwright install chromium
-npm run build && npm run test:e2e   # Playwright no build de produção
+curl -s http://localhost:5173/config.js            # as variáveis que o container recebeu
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:5173/pedidos/qualquer-id   # 200: rota interna devolve o app
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:5173/assets/nao-existe.js  # 404
 ```
 
-O Playwright também passa o axe nas telas principais (tema claro e escuro) e confere que nada rola para o lado em 360 px e em 1440 px.
+Os testes automáticos:
+
+```bash
+npm run lint && npm run typecheck
+npm test                                  # Vitest: simulação, telas e cliente do gateway
+npx playwright install chromium
+npm run build && npm run build:pages
+npm run test:e2e                          # Playwright no build de produção
+```
+
+- **Vitest** cobre as regras da simulação, os estados de carregando, vazio e erro de cada tela, e o cliente do gateway contra respostas simuladas com MSW no formato do contrato (`401` com renovação, `403`, `429`, `503`, e o SSE cortado no meio de um caractere).
+- **Playwright** cobre os cenários acima no build de produção, passa o axe nas telas (tema claro e escuro) e confere 360 px e 1440 px sem rolagem lateral.
+- **Modo real no Playwright**: o mesmo build, com Keycloak e gateway simulados na rede. O teste só entrega o token se o verificador do PKCE bater com o desafio.
+- **GitHub Pages**: o build com `/order-dashboard/` roda atrás de um servidor que responde como o Pages (`404.html` para rota interna).
+- **Imagem**: o CI constrói, sobe o container com variáveis diferentes do padrão e confere o `config.js`, a rota interna e os cabeçalhos.
+
+**Lighthouse.** Medi com o Lighthouse 13.5 no build de produção servido por `npm run preview`, na minha máquina, três vezes seguidas, em 10/10/2026. No perfil de celular (4G lento e CPU 4 vezes mais lenta, simulados): desempenho 97, 96 e 97, acessibilidade 100, boas práticas 100. No perfil de desktop: 100, 100 e 100.
 
 ## Decisões que tomei e por quê
 
-- **Uma interface para os dados, e a simulação atrás dela.** As telas, os testes de tela e o modo real usam o mesmo `StoreApi`. Nos testes de tela eu troco por um objeto simples e consigo provocar erro `429` ou `503` sem malabarismo.
+- **Uma interface para os dados, com a simulação e o gateway atrás dela.** As telas e os testes de tela usam o mesmo `StoreApi`. Nos testes eu troco por um objeto simples e provoco `429` ou `503` sem malabarismo.
 - **Simular os serviços, não as respostas.** Seria mais rápido devolver JSON pronto com um `setTimeout`. Preferi reproduzir a coreografia por eventos, porque é ela que eu quero mostrar: reserva tudo ou nada, evento repetido ignorado, pagamento que chega antes da reserva, estoque devolvido no cancelamento.
-- **Tempo lógico nas tarefas.** Cada reação guarda a hora em que deveria acontecer. Por isso recarregar a página não perde o pedido, e o histórico inicial é gerado em milissegundos com as mesmas funções.
-- **As regras do gateway valem na demonstração.** Sem login responde `401`, cliente pedindo indicador responde `403`, e há limite de pedidos por segundo (`429`). Assim as telas de erro são exercitadas de verdade.
 - **A lista não tenta adivinhar o estado.** O aviso ao vivo só dispara uma nova busca. É uma requisição a mais, mas a tela nunca mostra algo que o servidor não disse.
-- **Cor só para o estado do pedido.** O resto da interface é tinta sobre papel. Azul, âmbar, verde e vermelho aparecem apenas para dizer em que ponto o pedido está, sempre com ícone e texto junto.
-- **Uma família de fonte em três larguras** (Archivo variável): larga para títulos e valores, estreita para rótulos, normal para leitura. A fonte vai junto no build, sem pedir nada a outro servidor.
-- **O gráfico só é baixado por quem abre Indicadores.** A biblioteca de gráficos é a maior parte do pacote e só o admin usa.
+- **Sessão fora do React.** O cliente HTTP precisa do token e as telas precisam do usuário. Uma `Session` simples atende os dois, e o `oidc-client-ts` basta: não usei o `react-oidc-context`.
+- **Papéis lidos do token de acesso.** O Keycloak põe os papéis do realm no token de acesso, não no de identidade. O painel lê ali só para montar o menu; quem decide o acesso é o gateway.
+- **Token no `sessionStorage`.** Vale para a aba e some quando ela fecha. É o meio-termo entre pedir login a cada recarga e deixar o token guardado para sempre.
+- **Configuração em `config.js`, não dentro do pacote.** O nginx responde esse arquivo com as variáveis do container. Se fossem trocadas no build, cada ambiente precisaria de uma imagem.
+- **Rotas com endereço limpo no GitHub Pages.** O Pages não reescreve rotas, então o `404.html` é uma cópia do app. A rota interna abre e recarrega, mas a primeira resposta sai com status 404. Para uma demonstração eu aceito; com `#` no endereço não aconteceria.
+- **Cor só para o estado do pedido.** O resto é tinta sobre papel. Azul, âmbar, verde e vermelho dizem em que ponto o pedido está, sempre com ícone e texto junto.
+- **O gráfico só é baixado por quem abre Indicadores**, e a biblioteca de login só no modo real.
 
 ## O que eu faria a seguir
 
-- O modo real: cliente HTTP com token e renovação, login com PKCE no Keycloak e SSE por `fetch`.
-- Imagem Docker com nginx e publicação no GitHub Pages.
-- Capturas de tela aqui no README e a medição do Lighthouse.
+- Rodar o Playwright do modo real contra o sistema completo no CI do order-platform, em vez de só contra a rede simulada.
+- Cabeçalho `Content-Security-Policy` no nginx, montado com os endereços do gateway e do Keycloak.
+- Trocar as consultas periódicas do detalhe (notificações) e dos indicadores por um stream, quando esses serviços tiverem um.
+- O gateway aceita qualquer `customerId` na listagem. O filtro por cliente devia sair do token, no servidor.
 - Exportar os pedidos em CSV na tela de Indicadores.
