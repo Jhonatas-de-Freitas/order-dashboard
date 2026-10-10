@@ -2,7 +2,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { formatMoney, plural } from '../lib/format';
 
 export interface RevenueDay {
-  /** `YYYY-MM-DD` */
+  /** `YYYY-MM-DD`, on the calendar of whoever is looking. */
   day: string;
   revenue: number;
   orders: number;
@@ -42,7 +42,9 @@ export function RevenueChart({ days }: { days: RevenueDay[] }) {
               tick={axisText}
               tickLine={false}
               axisLine={{ stroke: 'var(--line-strong)' }}
-              minTickGap={12}
+              // Every nth day, evenly: dropping only the labels that collide leaves gaps.
+              interval="equidistantPreserveEnd"
+              minTickGap={8}
             />
             <YAxis
               width={64}

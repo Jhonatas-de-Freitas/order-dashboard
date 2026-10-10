@@ -17,32 +17,27 @@ import {
   plural,
 } from '../lib/format';
 import { CANCELLATION, STATUS, type Tone } from '../orders/status';
-import { RevenueChart, type RevenueDay } from './RevenueChart';
+import { lastLocalDays, revenueByLocalDay } from './revenue-days';
+import { RevenueChart } from './RevenueChart';
 
 const CHART_DAYS = 14;
-const DAY_MS = 86_400_000;
 
 async function loadIndicators(api: StoreApi) {
-  // order-analytics buckets by UTC day, so the range is counted in UTC too.
-  const today = Date.now();
-  const days = Array.from({ length: CHART_DAYS }, (_, index) =>
-    new Date(today - (CHART_DAYS - 1 - index) * DAY_MS).toISOString().slice(0, 10),
-  );
+  const { days, from, to } = lastLocalDays(CHART_DAYS);
   const [summary, byStatus, revenue, cancellations, topProducts] = await Promise.all([
     api.getSummary(),
     api.getOrdersByStatus(),
-    api.getRevenue({ from: days[0] ?? '', to: days.at(-1) ?? '', granularity: 'day' }),
+    api.getRevenue({ from, to, granularity: 'hour' }),
     api.getCancellations(),
     api.getTopProducts(5),
   ]);
-  // The service only returns days that had revenue; the chart wants every day.
-  const byDay = new Map(revenue.map((bucket) => [bucket.bucket.slice(0, 10), bucket]));
-  const revenueByDay: RevenueDay[] = days.map((day) => ({
-    day,
-    revenue: byDay.get(day)?.revenue ?? 0,
-    orders: byDay.get(day)?.orders ?? 0,
-  }));
-  return { summary, byStatus, revenueByDay, cancellations, topProducts };
+  return {
+    summary,
+    byStatus,
+    revenueByDay: revenueByLocalDay(days, revenue),
+    cancellations,
+    topProducts,
+  };
 }
 
 export function IndicatorsPage() {
@@ -69,10 +64,7 @@ export function IndicatorsPage() {
       </PageHeader>
 
       {indicators.isPending ? (
-        <Loading label="Carregando os indicadores">
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="mt-6 h-80 rounded-lg" />
-        </Loading>
+        <IndicatorsSkeleton />
       ) : indicators.isError ? (
         <div className="sheet">
           <ErrorState error={indicators.error} onRetry={() => void indicators.refetch()} />
@@ -110,7 +102,7 @@ function Indicators({
 
   return (
     <div className="grid gap-6">
-      <dl className="grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+      <dl className={FIGURES}>
         <Figure
           label="Total de pedidos"
           value={formatCount(summary.totalOrders)}
@@ -138,12 +130,18 @@ function Indicators({
       </dl>
 
       <Panel title={`Faturamento confirmado por dia, últimos ${revenueByDay.length} dias`}>
-        <div className="px-3 py-5 sm:px-6">
-          <RevenueChart days={revenueByDay} />
-        </div>
+        {revenueByDay.some((day) => day.revenue > 0) ? (
+          <div className="px-3 py-5 sm:px-6">
+            <RevenueChart days={revenueByDay} />
+          </div>
+        ) : (
+          <p className="px-5 py-4 text-ink-muted sm:px-6">
+            Nenhuma venda confirmada nos últimos {revenueByDay.length} dias.
+          </p>
+        )}
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <Panel title="Pedidos por estado">
           <BarList
             rows={byStatus.map(({ status, count }) => ({
@@ -170,7 +168,7 @@ function Indicators({
             />
           )}
         </Panel>
-        <Panel title="Produtos mais vendidos">
+        <Panel title="Produtos mais vendidos" className="lg:col-span-2 xl:col-span-1">
           {topProducts.length === 0 ? (
             <p className="px-5 py-4 text-ink-muted sm:px-6">Nenhuma venda confirmada até agora.</p>
           ) : (
@@ -191,13 +189,38 @@ function Indicators({
   );
 }
 
+const FIGURES =
+  'grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 lg:grid-cols-4';
+const FIGURE = 'bg-surface px-5 py-4 sm:px-6 sm:py-5';
+
 function Figure({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="bg-surface px-5 py-4 sm:px-6 sm:py-5">
+    <div className={FIGURE}>
       <dt className="type-narrow text-sm text-ink-muted">{label}</dt>
       <dd className="type-wide mt-1 text-2xl xl:text-3xl">{value}</dd>
       <dd className="mt-0.5 text-sm text-ink-muted">{hint}</dd>
     </div>
+  );
+}
+
+/** The four figures and the chart panel, in outline. */
+function IndicatorsSkeleton() {
+  return (
+    <Loading label="Carregando os indicadores">
+      <div className={FIGURES}>
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className={FIGURE}>
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="mt-2 h-8 w-24" />
+            <Skeleton className="mt-2 h-4 w-40 max-w-full" />
+          </div>
+        ))}
+      </div>
+      <div className="sheet mt-6 px-5 py-5 sm:px-6">
+        <Skeleton className="h-4 w-64 max-w-full" />
+        <Skeleton className="mt-5 h-64" />
+      </div>
+    </Loading>
   );
 }
 
@@ -218,7 +241,7 @@ function BarList({ rows }: { rows: BarRow[] }) {
         <li key={row.key} data-tone={row.tone}>
           <p className="flex items-baseline justify-between gap-3">
             <span>{row.label}</span>
-            <span className="text-right tabular-nums">
+            <span className="text-right whitespace-nowrap tabular-nums">
               <span className="font-semibold">{row.value}</span>
               {row.detail && <span className="ml-2 text-sm text-ink-muted">{row.detail}</span>}
             </span>
