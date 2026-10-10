@@ -6,6 +6,7 @@ import type { Product } from '../api/types';
 import { useDemo } from '../auth/SessionContext';
 import { Button } from '../components/Button';
 import { PageHeader } from '../components/PageHeader';
+import { Panel } from '../components/Panel';
 import { EmptyState, ErrorState, Loading, Skeleton } from '../components/states';
 import { formatCount, formatMoney } from '../lib/format';
 import { MAX_QUANTITY, useCart } from './cart';
@@ -27,13 +28,7 @@ export function ShopPage() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="grid gap-4">
           {demo && <DemoScenarios />}
-          <section aria-labelledby="catalogo" className="sheet">
-            <h2
-              id="catalogo"
-              className="type-narrow border-b border-line px-5 py-3 text-sm text-ink-muted sm:px-6"
-            >
-              Catálogo
-            </h2>
+          <Panel title="Catálogo">
             {products.isPending ? (
               <CatalogSkeleton />
             ) : products.isError ? (
@@ -53,7 +48,7 @@ export function ShopPage() {
                 ))}
               </ul>
             )}
-          </section>
+          </Panel>
         </div>
         <OrderSlip products={products.data ?? []} />
       </div>

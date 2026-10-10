@@ -126,7 +126,6 @@
   --color-tone: var(--tone);
   --color-tone-soft: var(--tone-soft);
   --color-tone-solid: var(--tone-solid);
-  --color-confirmed-solid: var(--confirmed-solid);
 }
 
 @theme {
@@ -157,7 +156,6 @@
   --radius-full: 999px;
 
   --shadow-*: initial;
-  --shadow-slip: 0 1px 1px rgb(15 27 45 / 0.06), 0 10px 24px -12px rgb(15 27 45 / 0.28);
   --shadow-pop: 0 12px 32px -8px rgb(6 12 20 / 0.35);
 
   --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);

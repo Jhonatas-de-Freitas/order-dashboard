@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { ChartNoAxesColumn } from 'lucide-react';
-import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useApi } from '../api/context';
 import { keys } from '../api/keys';
 import type { StoreApi } from '../api/store-api';
 import { buttonClass } from '../components/Button';
 import { PageHeader } from '../components/PageHeader';
+import { Panel } from '../components/Panel';
 import { EmptyState, ErrorState, Loading, Skeleton } from '../components/states';
 import {
   formatCount,
@@ -198,21 +198,6 @@ function Figure({ label, value, hint }: { label: string; value: string; hint: st
       <dd className="type-wide mt-1 text-2xl xl:text-3xl">{value}</dd>
       <dd className="mt-0.5 text-sm text-ink-muted">{hint}</dd>
     </div>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section aria-labelledby={id} className="sheet">
-      <h2
-        id={id}
-        className="type-narrow border-b border-line px-5 py-3 text-sm text-ink-muted sm:px-6"
-      >
-        {title}
-      </h2>
-      {children}
-    </section>
   );
 }
 

@@ -7,7 +7,6 @@ import {
   Smartphone,
   type LucideIcon,
 } from 'lucide-react';
-import { useId, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../api/context';
 import { keys } from '../api/keys';
@@ -22,6 +21,7 @@ import type {
 } from '../api/types';
 import { buttonClass } from '../components/Button';
 import { PageHeader } from '../components/PageHeader';
+import { Panel } from '../components/Panel';
 import { EmptyState, ErrorState, Loading, Skeleton } from '../components/states';
 import { formatDateTime, formatMoney, formatTime, orderCode, plural } from '../lib/format';
 import { usePollingFallback } from './LiveOrders';
@@ -175,21 +175,6 @@ export function OrderDetailPage() {
         </div>
       </div>
     </>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section aria-labelledby={id} className="sheet">
-      <h2
-        id={id}
-        className="type-narrow border-b border-line px-5 py-3 text-sm text-ink-muted sm:px-6"
-      >
-        {title}
-      </h2>
-      {children}
-    </section>
   );
 }
 
