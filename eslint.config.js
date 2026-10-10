@@ -6,7 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'playwright-report', 'test-results'] },
+  { ignores: ['dist', 'dist-pages', 'coverage', 'playwright-report', 'test-results'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -19,7 +19,7 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat.recommended, jsxA11y.flatConfigs.recommended],
   },
-  { files: ['*.config.{js,ts}', 'tests/e2e/**'], languageOptions: { globals: globals.node } },
+  { files: ['*.config.{js,ts}', 'tests/**'], languageOptions: { globals: globals.node } },
   {
     files: ['eslint.config.js', 'public/config.js'],
     extends: [tseslint.configs.disableTypeChecked],
