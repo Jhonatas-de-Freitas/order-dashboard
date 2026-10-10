@@ -151,6 +151,25 @@ describe('loading and empty states', () => {
   });
 });
 
+describe('orders pages', () => {
+  it('goesBackToTheLastPageWhenTheAddressIsPastTheEnd', async () => {
+    const listOrders = vi.fn<StoreApi['listOrders']>().mockImplementation(({ page = 0 }) =>
+      Promise.resolve({
+        content: page === 0 ? [summaryOf(confirmedOrder)] : [],
+        page,
+        size: 10,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    );
+    renderApp({ api: stubApi({ listOrders }), route: '/pedidos?pagina=3' });
+
+    expect(await screen.findByText('#7C1F0A34')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum pedido ainda')).not.toBeInTheDocument();
+    expect(listOrders).toHaveBeenLastCalledWith(expect.objectContaining({ page: 0 }));
+  });
+});
+
 describe('access by role', () => {
   it('hidesAdminScreensFromTheCustomerMenu', async () => {
     renderApp();

@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { useEffect } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { useApi } from '../api/context';
 import { keys } from '../api/keys';
@@ -44,6 +45,24 @@ export function OrdersPage() {
     placeholderData: keepPreviousData,
     refetchInterval,
   });
+
+  // A page past the end is not an empty list: the address may come from a link, or from
+  // someone with more orders who was signed in before on this tab.
+  const lastPage =
+    orders.data && !orders.isPlaceholderData ? Math.max(orders.data.totalPages - 1, 0) : null;
+  const pastTheEnd = lastPage !== null && page > lastPage;
+  useEffect(() => {
+    if (!pastTheEnd) return;
+    setParams(
+      (current) => {
+        const search = new URLSearchParams(current);
+        if (lastPage) search.set('pagina', String(lastPage + 1));
+        else search.delete('pagina');
+        return search;
+      },
+      { replace: true },
+    );
+  }, [pastTheEnd, lastPage, setParams]);
 
   const show = (next: { status?: OrderStatus; page?: number }) => {
     const search = new URLSearchParams();
@@ -90,7 +109,7 @@ export function OrdersPage() {
       </div>
 
       <section aria-label="Lista de pedidos" className="sheet overflow-hidden">
-        {orders.isPending ? (
+        {orders.isPending || pastTheEnd ? (
           <OrdersSkeleton />
         ) : orders.isError ? (
           <ErrorState error={orders.error} onRetry={() => void orders.refetch()} />
@@ -149,7 +168,7 @@ export function OrdersPage() {
         )}
       </section>
 
-      {orders.data && orders.data.totalPages > 1 && (
+      {orders.data && orders.data.totalPages > 1 && !pastTheEnd && (
         <nav aria-label="Páginas" className="mt-4 flex items-center justify-between gap-4">
           <p className="text-sm text-ink-muted">
             Página {orders.data.page + 1} de {orders.data.totalPages},{' '}
