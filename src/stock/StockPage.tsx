@@ -10,6 +10,7 @@ import { EmptyState, ErrorState, Loading, Skeleton } from '../components/states'
 import { useToast } from '../components/Toaster';
 import { describeError } from '../lib/errors';
 import { formatMoney } from '../lib/format';
+import { ProductIcon } from '../shop/ProductIcon';
 
 export function StockPage() {
   const api = useApi();
@@ -21,7 +22,7 @@ export function StockPage() {
         title="Estoque"
         description="O saldo é o que a loja pode reservar. Um pedido com mais unidades do que o saldo é cancelado por falta de estoque."
       />
-      <section aria-label="Produtos" className="sheet">
+      <section aria-label="Produtos" className="sheet max-w-3xl">
         {products.isPending ? (
           <Loading label="Carregando os produtos">
             <ul className="divide-y divide-line">
@@ -30,7 +31,10 @@ export function StockPage() {
                   key={index}
                   className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6"
                 >
-                  <Skeleton className="h-5 w-44" />
+                  <span className="flex items-center gap-4">
+                    <Skeleton className="size-10 rounded-md" />
+                    <Skeleton className="h-5 w-44" />
+                  </span>
                   <Skeleton className="h-10 w-40" />
                 </li>
               ))}
@@ -99,20 +103,23 @@ function StockRow({ product }: { product: Product }) {
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-4 sm:px-6">
-      <div className="min-w-0 flex-1 basis-56">
-        <p className="font-semibold">{product.name}</p>
-        <p className="text-sm text-ink-muted">
-          <span className="tabular-nums">{formatMoney(product.price)}</span>
-          {product.availableQuantity === 0 && (
-            <span
-              data-tone="cancelled"
-              className="type-narrow ml-3 inline-flex items-center gap-1 text-tone"
-            >
-              <Ban aria-hidden className="size-3.5" />
-              Sem saldo
-            </span>
-          )}
-        </p>
+      <div className="flex min-w-0 flex-1 basis-56 items-center gap-4">
+        <ProductIcon productId={product.id} />
+        <div className="min-w-0">
+          <p className="font-semibold">{product.name}</p>
+          <p className="text-sm text-ink-muted">
+            <span className="tabular-nums">{formatMoney(product.price)}</span>
+            {product.availableQuantity === 0 && (
+              <span
+                data-tone="cancelled"
+                className="type-narrow ml-3 inline-flex items-center gap-1 text-tone"
+              >
+                <Ban aria-hidden className="size-3.5" />
+                Sem saldo
+              </span>
+            )}
+          </p>
+        </div>
       </div>
       <form onSubmit={submit} className="flex items-center gap-2">
         <label htmlFor={fieldId} className="type-narrow text-sm text-ink-muted">
