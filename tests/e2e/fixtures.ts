@@ -1,14 +1,22 @@
 import { expect, test as base, type Locator, type Page } from '@playwright/test';
 
 /** Every test also fails if the page logs an error or throws, whatever it was checking. */
-export const test = base.extend<{ failOnConsoleErrors: void }>({
+export const test = base.extend<{
+  /** Console errors a test provokes on purpose, like the browser reporting a 401. */
+  expectedConsoleErrors: RegExp | undefined;
+  failOnConsoleErrors: void;
+}>({
+  expectedConsoleErrors: [undefined, { option: true }],
   failOnConsoleErrors: [
-    async ({ page }, use) => {
+    async ({ page, expectedConsoleErrors }, use) => {
       const errors: string[] = [];
+      const record = (text: string) => {
+        if (!expectedConsoleErrors?.test(text)) errors.push(text);
+      };
       page.on('console', (message) => {
-        if (message.type() === 'error') errors.push(message.text());
+        if (message.type() === 'error') record(message.text());
       });
-      page.on('pageerror', (error) => errors.push(error.message));
+      page.on('pageerror', (error) => record(error.message));
       await use();
       expect(errors, 'errors in the browser console').toEqual([]);
     },
