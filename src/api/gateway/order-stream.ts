@@ -110,16 +110,15 @@ async function readWithin(limit: number, reader: ReadableStreamDefaultReader<Uin
   }
 }
 
-function sleep(milliseconds: number, signal: AbortSignal) {
+export function sleep(milliseconds: number, signal: AbortSignal) {
   return new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, milliseconds);
-    signal.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
+    const wake = () => {
+      clearTimeout(timer);
+      // One sleep per reconnection attempt: left on the signal, the listeners would pile up.
+      signal.removeEventListener('abort', wake);
+      resolve();
+    };
+    const timer = setTimeout(wake, milliseconds);
+    signal.addEventListener('abort', wake);
   });
 }
