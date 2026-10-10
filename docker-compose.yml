@@ -1,0 +1,14 @@
+services:
+  order-dashboard:
+    build: .
+    image: ghcr.io/jhonatas-de-freitas/order-dashboard:latest
+    ports:
+      - '5173:5173'
+    environment:
+      # Demo by default. With VITE_DEMO_MODE=false the panel talks to the api-gateway
+      # and signs in at Keycloak, both seen from the browser (so localhost, not service names).
+      VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-http://localhost:8180}
+      VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-store}
+      VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-store-web}
