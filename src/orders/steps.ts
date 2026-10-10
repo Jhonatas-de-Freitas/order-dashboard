@@ -1,4 +1,4 @@
-import type { Order, OrderStatus, Payment } from '../api/types';
+import type { Order, OrderStatus, Payment, Product } from '../api/types';
 import { formatMoney } from '../lib/format';
 import { CANCELLATION, paymentRefusalLabel, type Tone } from './status';
 
@@ -17,7 +17,7 @@ export interface Step {
  * The four stops every order goes through, in order. The order history only records
  * state changes, so the payment stop comes from the payment itself.
  */
-export function orderSteps(order: Order, payment: Payment | null): Step[] {
+export function orderSteps(order: Order, payment: Payment | null, catalog: Product[] = []): Step[] {
   const at = (status: OrderStatus) =>
     order.history.find((entry) => entry.status === status)?.occurredAt;
   const outOfStock = order.cancellationReason === 'OUT_OF_STOCK';
@@ -32,7 +32,9 @@ export function orderSteps(order: Order, payment: Payment | null): Step[] {
         state: 'failed',
         tone: 'cancelled',
         at: at('CANCELLED'),
-        detail: order.cancellationDetail ?? undefined,
+        detail: order.cancellationDetail
+          ? withProductNames(order.cancellationDetail, catalog)
+          : undefined,
       }
     : reserved
       ? {
@@ -60,9 +62,9 @@ export function orderSteps(order: Order, payment: Payment | null): Step[] {
       state: 'failed',
       tone: 'cancelled',
       at: payment?.createdAt ?? at('CANCELLED'),
-      detail: payment
-        ? paymentRefusalLabel(payment.reason)
-        : (order.cancellationDetail ?? undefined),
+      detail: paymentRefusalLabel(
+        payment ? payment.reason : refusalReason(order.cancellationDetail),
+      ),
     };
   } else if (approved) {
     paymentStep = {
@@ -122,6 +124,17 @@ export function orderSteps(order: Order, payment: Payment | null): Step[] {
     outcome,
   ];
 }
+
+/**
+ * The event that refuses the stock only carries product ids, so the order-service
+ * writes the id in the detail. People read names, and the catalog has them.
+ */
+const withProductNames = (detail: string, catalog: Product[]) =>
+  catalog.reduce((text, product) => text.replaceAll(product.id, product.name), detail);
+
+/** order-service writes `Pagamento recusado: <reason>`; the reason is what gets a label. */
+const refusalReason = (detail: string | null) =>
+  detail?.replace(/^Pagamento recusado: /, '') ?? null;
 
 /**
  * The same four stops for a row of the list, which only has the summary. A cancelled

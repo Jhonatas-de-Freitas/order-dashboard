@@ -1,5 +1,5 @@
 import type { CancellationReason, NewOrder, Order, OrderQuery, OrderSummary, Page } from '../types';
-import type { DomainEvent } from './events';
+import type { DomainEvent, EventPayloads } from './events';
 import { iso, type Context, type SimState } from './state';
 
 const isFinal = (order: Order) => order.status === 'CONFIRMED' || order.status === 'CANCELLED';
@@ -84,16 +84,7 @@ export function onOrderServiceEvent(state: SimState, event: DomainEvent, ctx: Co
       return;
     }
     case 'StockRejected': {
-      // The event carries no product names; the catalog is borrowed to write the detail line.
-      const detail = event.payload.unavailableItems
-        .map((item) => {
-          const name = state.products.find((p) => p.id === item.productId)?.name;
-          return name
-            ? `${name}: pedido ${item.requestedQuantity}, disponível ${item.availableQuantity}`
-            : `Produto não encontrado: ${item.productId}`;
-        })
-        .join('; ');
-      cancel(order, 'OUT_OF_STOCK', detail, ctx);
+      cancel(order, 'OUT_OF_STOCK', stockRejectedDetail(event.payload), ctx);
       return;
     }
     case 'PaymentApproved':
@@ -128,11 +119,22 @@ export function onOrderServiceEvent(state: SimState, event: DomainEvent, ctx: Co
   }
 }
 
-function refusalDetail(reason: string): string {
-  return reason === 'LIMIT_EXCEEDED'
-    ? 'Valor acima do limite de aprovação'
-    : `Pagamento recusado: ${reason}`;
+// The same lines order-service writes. The event has no product names, so the detail
+// carries ids, and the screen puts the names back.
+function stockRejectedDetail({ reason, unavailableItems }: EventPayloads['StockRejected']) {
+  if (unavailableItems.length === 0) return 'Sem estoque';
+  if (reason === 'PRODUCT_NOT_FOUND') {
+    return `Produto não encontrado: ${unavailableItems.map((item) => item.productId).join(', ')}`;
+  }
+  return unavailableItems
+    .map(
+      (item) =>
+        `${item.productId}: pedido ${item.requestedQuantity}, disponível ${item.availableQuantity}`,
+    )
+    .join('; ');
 }
+
+const refusalDetail = (reason: string) => `Pagamento recusado: ${reason}`;
 
 function cancel(order: Order, reason: CancellationReason, detail: string, ctx: Context) {
   order.cancellationReason = reason;

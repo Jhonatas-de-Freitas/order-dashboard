@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CATALOG } from '../api/demo/seed';
 import type { Order, Payment } from '../api/types';
 import { orderSteps, summarySteps } from './steps';
 
@@ -73,17 +74,16 @@ describe('orderSteps', () => {
   });
 
   it('stopsAtStockAndSkipsPaymentWhenThereIsNoStock', () => {
+    // As order-service writes it: the event that refuses the stock has no product names.
+    const detail = '44444444-4444-4444-4444-444444444444: pedido 1, disponível 0';
     const cancelled: Order = {
       ...pending,
       status: 'CANCELLED',
       cancellationReason: 'OUT_OF_STOCK',
-      cancellationDetail: 'Headset USB: pedido 1, disponível 0',
-      history: [
-        ...pending.history,
-        { status: 'CANCELLED', occurredAt: at(22), detail: 'Headset USB: pedido 1, disponível 0' },
-      ],
+      cancellationDetail: detail,
+      history: [...pending.history, { status: 'CANCELLED', occurredAt: at(22), detail }],
     };
-    const steps = orderSteps(cancelled, null);
+    const steps = orderSteps(cancelled, null, CATALOG);
     expect(steps.map((step) => step.state)).toEqual(['done', 'failed', 'skipped', 'failed']);
     expect(steps[1]).toMatchObject({
       title: 'Sem estoque',
@@ -97,10 +97,10 @@ describe('orderSteps', () => {
       ...reserved,
       status: 'CANCELLED',
       cancellationReason: 'PAYMENT_REFUSED',
-      cancellationDetail: 'Valor acima do limite de aprovação',
+      cancellationDetail: 'Pagamento recusado: LIMIT_EXCEEDED',
       history: [
         ...reserved.history,
-        { status: 'CANCELLED', occurredAt: at(25), detail: 'Valor acima do limite de aprovação' },
+        { status: 'CANCELLED', occurredAt: at(25), detail: 'Pagamento recusado: LIMIT_EXCEEDED' },
       ],
     };
     const steps = orderSteps(cancelled, payment('REFUSED'));
@@ -110,6 +110,11 @@ describe('orderSteps', () => {
       detail: 'Valor acima do limite de aprovação',
     });
     expect(steps[3]?.detail).toBe('Pagamento recusado');
+
+    expect(orderSteps(cancelled, null)[2]).toMatchObject({
+      title: 'Pagamento recusado',
+      detail: 'Valor acima do limite de aprovação',
+    });
   });
 
   it('showsThePaymentAsSoonAsItExistsEvenBeforeTheOrderCatchesUp', () => {

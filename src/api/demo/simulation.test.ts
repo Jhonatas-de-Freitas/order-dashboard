@@ -84,7 +84,7 @@ describe('order saga', () => {
     expect(simulation.tables.orders[id]).toMatchObject({
       status: 'CANCELLED',
       cancellationReason: 'OUT_OF_STOCK',
-      cancellationDetail: 'Headset USB: pedido 1, disponível 0',
+      cancellationDetail: `${HEADSET}: pedido 1, disponível 0`,
       totalAmount: null,
     });
     expect(simulation.tables.payments[id]).toBeUndefined();
@@ -110,6 +110,7 @@ describe('order saga', () => {
     expect(simulation.tables.orders[id]).toMatchObject({
       status: 'CANCELLED',
       cancellationReason: 'PAYMENT_REFUSED',
+      cancellationDetail: 'Pagamento recusado: LIMIT_EXCEEDED',
       totalAmount: 7499,
     });
     expect(simulation.tables.payments[id]).toMatchObject({
@@ -259,6 +260,23 @@ describe('analytics', () => {
     expect(
       analytics.revenue(facts, { from: '2026-10-10', to: '2026-10-10', granularity: 'day' }),
     ).toEqual([{ bucket: '2026-10-10', revenue: 829.7, orders: 2 }]);
+  });
+  it('ranksTiedProductsByRevenueAndRoundsTheRatesLikeTheService', () => {
+    const simulation = new Simulation(CATALOG);
+    simulation.placeOrder(orderOf([MOUSE, 2]));
+    simulation.placeOrder(orderOf([KEYBOARD, 2]));
+    simulation.placeOrder(orderOf([NOTEBOOK, 1]));
+    vi.advanceTimersByTime(20_000);
+
+    const facts = simulation.tables.analytics;
+    expect(analytics.topProducts(facts, 5).map((product) => product.productName)).toEqual([
+      'Teclado Mecânico',
+      'Mouse Sem Fio',
+    ]);
+    expect(analytics.topProducts(facts, 1)).toHaveLength(1);
+    const { approvalRate, averageSecondsToConfirm } = analytics.summary(facts);
+    expect(approvalRate).toBe(0.6667);
+    expect(averageSecondsToConfirm).toBe(Number(averageSecondsToConfirm?.toFixed(2)));
   });
 });
 

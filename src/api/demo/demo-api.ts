@@ -89,7 +89,10 @@ export function createDemoApi(
 
     listNotifications: ({ orderId, size = 20 }) =>
       respond('signed-in', () => {
-        const matching = tables().notifications.filter((n) => n.orderId === orderId);
+        // Newest first, like notification-service.
+        const matching = tables()
+          .notifications.filter((n) => n.orderId === orderId)
+          .reverse();
         return {
           content: matching.slice(0, size),
           page: 0,
@@ -104,7 +107,15 @@ export function createDemoApi(
     getRevenue: (query) => respond('admin', () => analytics.revenue(tables().analytics, query)),
     getCancellations: () => respond('admin', () => analytics.cancellations(tables().analytics)),
     getTopProducts: (limit) =>
-      respond('admin', () => analytics.topProducts(tables().analytics, limit)),
+      respond('admin', () => {
+        // FastAPI answers 422 when a query parameter is out of range.
+        if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+          throw problem(422, 'Unprocessable Content', 'limit deve ser de 1 a 100.', [
+            { field: 'limit', message: 'deve ser de 1 a 100' },
+          ]);
+        }
+        return analytics.topProducts(tables().analytics, limit);
+      }),
   };
 }
 

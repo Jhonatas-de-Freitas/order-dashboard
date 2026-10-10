@@ -52,6 +52,8 @@ export function onAnalyticsEvent(state: SimState, event: DomainEvent): void {
   }
 }
 
+const round = (value: number, places: number) => Number(value.toFixed(places));
+
 const confirmedOrders = (analytics: Analytics) =>
   Object.values(analytics.orders).filter(
     (facts): facts is OrderFacts & { confirmedAt: string } => facts.confirmedAt !== null,
@@ -72,11 +74,14 @@ export function summary(analytics: Analytics): AnalyticsSummary {
     cancelled,
     inProgress: all.length - finished,
     confirmedRevenue: roundMoney(confirmed.reduce((sum, facts) => sum + facts.totalAmount, 0)),
-    approvalRate: finished === 0 ? 0 : confirmed.length / finished,
+    approvalRate: finished === 0 ? 0 : round(confirmed.length / finished, 4),
     averageSecondsToConfirm:
       secondsToConfirm.length === 0
         ? null
-        : secondsToConfirm.reduce((sum, seconds) => sum + seconds, 0) / secondsToConfirm.length,
+        : round(
+            secondsToConfirm.reduce((sum, seconds) => sum + seconds, 0) / secondsToConfirm.length,
+            2,
+          ),
     lastEventAt: analytics.lastEventAt,
   };
 }
@@ -131,5 +136,10 @@ export function topProducts(analytics: Analytics, limit: number): TopProduct[] {
       products.set(item.productId, entry);
     }
   }
-  return [...products.values()].sort((a, b) => b.quantity - a.quantity).slice(0, limit);
+  return [...products.values()]
+    .sort(
+      (a, b) =>
+        b.quantity - a.quantity || b.revenue - a.revenue || a.productId.localeCompare(b.productId),
+    )
+    .slice(0, limit);
 }
