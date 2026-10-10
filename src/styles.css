@@ -1,0 +1,317 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo/wdth.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * The interface itself is ink on paper. Colour is kept for one job: saying in which
+ * state an order is. Each state has a text colour (AA on its soft background and on
+ * the surface), a soft background and a solid for marks.
+ */
+:root {
+  color-scheme: light;
+
+  --page: #edf0f4;
+  --surface: #ffffff;
+  --sunken: #e6ebf1;
+  --line: #d5dce5;
+  --line-strong: #8794a6;
+  --ink: #0f1b2d;
+  --ink-muted: #44536a;
+  --ink-subtle: #596779;
+  --band: #0f1b2d;
+  --band-ink: #ffffff;
+  --band-muted: #b7c3d3;
+  --band-line: #2a3b54;
+  --action: #0f1b2d;
+  --action-hover: #24364f;
+  --action-ink: #ffffff;
+  --focus: #0f1b2d;
+
+  --received: #1d4ab8;
+  --received-soft: #e2eafb;
+  --received-solid: #2f62e0;
+  --reserved: #7a4a00;
+  --reserved-soft: #faebcb;
+  --reserved-solid: #bd7900;
+  --confirmed: #0e6b3c;
+  --confirmed-soft: #daf1e3;
+  --confirmed-solid: #17995a;
+  --cancelled: #b02a21;
+  --cancelled-soft: #fbe3e0;
+  --cancelled-solid: #d43d31;
+
+  --tone: var(--ink-muted);
+  --tone-soft: var(--sunken);
+  --tone-solid: var(--line-strong);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --page: #0a121d;
+  --surface: #111b29;
+  --sunken: #182536;
+  --line: #25354b;
+  --line-strong: #5b6e87;
+  --ink: #e9eef5;
+  --ink-muted: #b3bfce;
+  --ink-subtle: #909eb2;
+  --band: #060c14;
+  --band-ink: #e9eef5;
+  --band-muted: #97a6ba;
+  --band-line: #25354b;
+  --action: #e9eef5;
+  --action-hover: #ffffff;
+  --action-ink: #0f1b2d;
+  --focus: #e9eef5;
+
+  --received: #9dbbff;
+  --received-soft: #15294f;
+  --received-solid: #5c8bff;
+  --reserved: #f2c86b;
+  --reserved-soft: #3b2b08;
+  --reserved-solid: #e0a21a;
+  --confirmed: #74dda4;
+  --confirmed-soft: #0d3421;
+  --confirmed-solid: #35c27a;
+  --cancelled: #ffa197;
+  --cancelled-soft: #471813;
+  --cancelled-solid: #f0685c;
+}
+
+[data-tone='received'] {
+  --tone: var(--received);
+  --tone-soft: var(--received-soft);
+  --tone-solid: var(--received-solid);
+}
+[data-tone='reserved'] {
+  --tone: var(--reserved);
+  --tone-soft: var(--reserved-soft);
+  --tone-solid: var(--reserved-solid);
+}
+[data-tone='confirmed'] {
+  --tone: var(--confirmed);
+  --tone-soft: var(--confirmed-soft);
+  --tone-solid: var(--confirmed-solid);
+}
+[data-tone='cancelled'] {
+  --tone: var(--cancelled);
+  --tone-soft: var(--cancelled-soft);
+  --tone-solid: var(--cancelled-solid);
+}
+[data-tone='neutral'] {
+  --tone: var(--ink-muted);
+  --tone-soft: var(--sunken);
+  --tone-solid: var(--line-strong);
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-band: var(--band);
+  --color-band-ink: var(--band-ink);
+  --color-band-muted: var(--band-muted);
+  --color-band-line: var(--band-line);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-ink: var(--action-ink);
+  --color-tone: var(--tone);
+  --color-tone-soft: var(--tone-soft);
+  --color-tone-solid: var(--tone-solid);
+  --color-confirmed-solid: var(--confirmed-solid);
+}
+
+@theme {
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.875rem;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 2.75rem;
+
+  --radius-*: initial;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.625rem;
+  --radius-full: 999px;
+
+  --shadow-*: initial;
+  --shadow-slip: 0 1px 1px rgb(15 27 45 / 0.06), 0 10px 24px -12px rgb(15 27 45 / 0.28);
+  --shadow-pop: 0 12px 32px -8px rgb(6 12 20 / 0.35);
+
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --animate-state-in: state-in 420ms var(--ease-settle);
+  --animate-row-flash: row-flash 1800ms ease-out;
+  --animate-waiting: waiting 1400ms ease-in-out infinite;
+  --animate-skeleton: skeleton 1300ms ease-in-out infinite;
+  --animate-toast-in: toast-in 220ms var(--ease-settle);
+
+  @keyframes state-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.25rem) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes row-flash {
+    from {
+      background-color: var(--tone-soft);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+  @keyframes waiting {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--tone-solid) 45%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 0.3rem color-mix(in srgb, var(--tone-solid) 0%, transparent);
+    }
+  }
+  @keyframes skeleton {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* One family, three widths: wide for names and figures, narrow for labels, regular to read. */
+@utility type-wide {
+  font-stretch: 116%;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+@utility type-narrow {
+  font-stretch: 82%;
+  font-weight: 600;
+  letter-spacing: 0.012em;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-width: 20rem;
+    background-color: var(--page);
+    color: var(--ink);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  /* On the dark band the ink-coloured ring would disappear. */
+  .band {
+    --focus: var(--band-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* The order slip: torn edge at the bottom, like paper off a counter printer. */
+.slip-shadow {
+  filter: drop-shadow(0 1px 1px rgb(15 27 45 / 0.08)) drop-shadow(0 12px 18px rgb(15 27 45 / 0.12));
+}
+
+.slip {
+  --tooth: 0.5rem;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom /
+      calc(var(--tooth) * 2) var(--tooth) repeat-x,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat;
+}
+
+.leader {
+  flex: 1;
+  min-width: 1rem;
+  margin: 0 0.5rem 0.3rem;
+  border-bottom: 1px dotted var(--line-strong);
+}
+
+@utility wrap {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility sheet {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface);
+}
