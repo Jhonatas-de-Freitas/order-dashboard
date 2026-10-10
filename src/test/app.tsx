@@ -133,7 +133,10 @@ export function sessionOf(initial: User | null): Session {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    signIn: () => change(ana),
+    signIn() {
+      change(ana);
+      return Promise.resolve();
+    },
     signOut: () => change(null),
   };
 }
@@ -141,14 +144,16 @@ export function sessionOf(initial: User | null): Session {
 export function renderApp({
   api = stubApi(),
   user = ana,
+  session = sessionOf(user),
   route = '/',
 }: {
   api?: StoreApi;
   user?: User | null;
+  session?: Session;
   route?: string;
 } = {}) {
   return render(
-    <Providers api={api} session={sessionOf(user)}>
+    <Providers api={api} session={session}>
       <MemoryRouter initialEntries={[route]}>
         <AppRoutes />
       </MemoryRouter>

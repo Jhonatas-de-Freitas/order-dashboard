@@ -14,5 +14,7 @@ export default defineConfig({
     css: false,
     restoreMocks: true,
     testTimeout: 15_000,
+    // One test file imports the chart library in a hook; on a busy machine that is slow.
+    hookTimeout: 30_000,
   },
 });

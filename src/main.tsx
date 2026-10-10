@@ -7,17 +7,24 @@ import { config } from './config';
 import { browserStorage } from './lib/storage';
 import './styles.css';
 
-if (!config.demoMode) {
-  throw new Error('Only the demo mode exists so far. Build without VITE_DEMO_MODE=false.');
+async function startBackend() {
+  if (config.demoMode) {
+    const demo = startDemo(browserStorage('session'));
+    return { api: demo.api, session: demo.session, demo };
+  }
+  // Loaded on demand: the published demo never downloads the sign-in library.
+  const { connectToGateway } = await import('./api/gateway');
+  return { ...(await connectToGateway(config)), demo: undefined };
 }
 
-const demo = startDemo(browserStorage('session'));
 const root = document.getElementById('root');
 if (!root) throw new Error('index.html has no #root element');
 
+const { api, session, demo } = await startBackend();
+
 createRoot(root).render(
   <StrictMode>
-    <Providers api={demo.api} session={demo.session} demo={demo}>
+    <Providers api={api} session={session} demo={demo}>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AppRoutes />
       </BrowserRouter>

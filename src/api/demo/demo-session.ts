@@ -32,7 +32,10 @@ export function createDemoSession(storage?: KeyValueStorage): DemoSession {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    signIn: () => change(ANA),
+    signIn() {
+      change(ANA);
+      return Promise.resolve();
+    },
     signInAs: change,
     signOut: () => change(null),
   };

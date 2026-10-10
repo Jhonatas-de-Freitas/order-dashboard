@@ -1,5 +1,5 @@
 import { Lock, SearchX } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import { Button, buttonClass } from '../components/Button';
 import { Logo } from '../components/Logo';
@@ -47,15 +47,45 @@ export function SignInPage() {
             </div>
           </>
         ) : (
-          <>
-            <p className="mt-1 text-ink-muted">Use a sua conta da loja para continuar.</p>
-            <Button variant="primary" className="mt-6 w-full" onClick={signIn}>
-              Entrar com a conta da loja
-            </Button>
-          </>
+          <StoreAccountSignIn onSignIn={() => signIn(cameFrom)} />
         )}
       </div>
     </main>
+  );
+}
+
+/** Sign-in happens on the identity provider's page; this only sends the person there. */
+function StoreAccountSignIn({ onSignIn }: { onSignIn: () => Promise<void> }) {
+  const [state, setState] = useState<'idle' | 'leaving' | 'unreachable'>('idle');
+
+  const leave = () => {
+    setState('leaving');
+    // It only settles if the person is still here: the login failed to open, or they
+    // came back to this page with the browser's back button.
+    onSignIn().then(
+      () => setState('idle'),
+      () => setState('unreachable'),
+    );
+  };
+
+  return (
+    <>
+      <p className="mt-1 text-ink-muted">Use a sua conta da loja para continuar.</p>
+      {state === 'unreachable' && (
+        <p role="alert" data-tone="cancelled" className="mt-4 text-sm text-tone">
+          <strong className="font-semibold">O login não respondeu.</strong> Confira se o servidor de
+          contas está no ar e tente de novo.
+        </p>
+      )}
+      <Button
+        variant="primary"
+        className="mt-6 w-full"
+        disabled={state === 'leaving'}
+        onClick={leave}
+      >
+        {state === 'leaving' ? 'Abrindo o login…' : 'Entrar com a conta da loja'}
+      </Button>
+    </>
   );
 }
 

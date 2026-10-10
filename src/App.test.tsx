@@ -11,6 +11,7 @@ import {
   keyboard,
   pageOf,
   renderApp,
+  sessionOf,
   stubApi,
   summaryOf,
 } from './test/app';
@@ -190,6 +191,32 @@ describe('access by role', () => {
     await waitFor(() =>
       expect(listOrders).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'c-1001' })),
     );
+  });
+});
+
+describe('signing in with the store account', () => {
+  it('asksTheSessionToComeBackToTheAddressThatWasOpened', async () => {
+    const session = sessionOf(null);
+    const signIn = vi.spyOn(session, 'signIn');
+    renderApp({ session, user: null, route: '/estoque' });
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Entrar com a conta da loja' }),
+    );
+
+    expect(signIn).toHaveBeenCalledWith('/estoque');
+  });
+
+  it('saysWhenTheLoginPageCannotBeOpened', async () => {
+    const session = sessionOf(null);
+    vi.spyOn(session, 'signIn').mockRejectedValue(new TypeError('Failed to fetch'));
+    renderApp({ session, user: null });
+
+    const enter = await screen.findByRole('button', { name: 'Entrar com a conta da loja' });
+    await userEvent.click(enter);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('O login não respondeu');
+    expect(enter).toBeEnabled();
   });
 });
 

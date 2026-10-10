@@ -11,7 +11,8 @@ export interface User {
 export interface Session {
   getUser: () => User | null;
   subscribe: (listener: () => void) => () => void;
-  signIn: () => void;
+  /** `returnTo` is the address to open afterwards. Rejects when the login cannot be reached. */
+  signIn: (returnTo?: string) => Promise<void>;
   signOut: () => void;
 }
 
