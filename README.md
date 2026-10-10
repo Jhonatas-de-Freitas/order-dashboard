@@ -61,10 +61,11 @@ flowchart LR
 - Toda chamada leva o token. Se ele venceu, é renovado antes. Se o gateway responde `401`, o painel renova uma vez e repete a chamada; se não der, encerra a sessão e volta para a tela de entrada.
 - `403`, `429` e `503` chegam como erro com o corpo `problem+json` do gateway, e cada tela mostra o aviso certo com o botão de tentar de novo.
 - A lista ao vivo lê `GET /api/orders/stream` com `fetch`, porque o `EventSource` do navegador não deixa mandar o cabeçalho `Authorization`. Se a conexão cai ou fica muda por 45 segundos, o painel avisa, passa a consultar a cada 5 segundos e tenta reconectar com intervalos crescentes.
+- O `customerId` de quem está logado é o `sub` do token (um UUID que o Keycloak gera). Um pedido criado por `curl` com `c-1001`, como nos exemplos dos outros repositórios, não aparece na lista da Ana; só o admin vê.
 
 ## Como rodar
 
-Precisa de Node 22 ou mais novo.
+Precisa de Node 22.22 ou mais novo, menos o 23 e o 25, que o Vitest não aceita (o CI e a imagem usam o 24).
 
 ```bash
 npm install
@@ -130,7 +131,7 @@ npm run test:e2e                          # Playwright no build de produção
 ```
 
 - **Vitest** cobre as regras da simulação, os estados de carregando, vazio e erro de cada tela, e o cliente do gateway contra respostas simuladas com MSW no formato do contrato (`401` com renovação, `403`, `429`, `503`, e o SSE cortado no meio de um caractere).
-- **Playwright** cobre os cenários acima no build de produção, passa o axe nas telas (tema claro e escuro) e confere 360 px e 1440 px sem rolagem lateral.
+- **Playwright** cobre os cenários acima no build de produção, passa o axe nas telas (tema claro e escuro) e confere 360, 768, 1024 e 1440 px sem rolagem lateral.
 - **Modo real no Playwright**: o mesmo build, com Keycloak e gateway simulados na rede. O teste só entrega o token se o verificador do PKCE bater com o desafio.
 - **GitHub Pages**: o build com `/order-dashboard/` roda atrás de um servidor que responde como o Pages (`404.html` para rota interna).
 - **Imagem**: o CI constrói, sobe o container com variáveis diferentes do padrão e confere o `config.js`, a rota interna e os cabeçalhos.
@@ -148,6 +149,7 @@ npm run test:e2e                          # Playwright no build de produção
 - **Configuração em `config.js`, não dentro do pacote.** O nginx responde esse arquivo com as variáveis do container. Se fossem trocadas no build, cada ambiente precisaria de uma imagem.
 - **Rotas com endereço limpo no GitHub Pages.** O Pages não reescreve rotas, então o `404.html` é uma cópia do app. A rota interna abre e recarrega, mas a primeira resposta sai com status 404. Para uma demonstração eu aceito; com `#` no endereço não aconteceria.
 - **Cor só para o estado do pedido.** O resto é tinta sobre papel. Azul, âmbar, verde e vermelho dizem em que ponto o pedido está, sempre com ícone e texto junto.
+- **Faturamento por dia no calendário de quem olha.** O order-analytics agrupa por dia UTC, e no Brasil uma venda depois das 21h cairia na barra do dia seguinte, diferente da hora que a lista mostra. O painel pede o faturamento por hora e soma os dias no navegador.
 - **O gráfico só é baixado por quem abre Indicadores**, e a biblioteca de login só no modo real.
 
 ## O que eu faria a seguir
