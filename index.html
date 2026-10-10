@@ -10,7 +10,8 @@
     <meta name="theme-color" content="#0f1b2d" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <title>Balcão, painel de pedidos</title>
-    <script src="%BASE_URL%config.js"></script>
+    <!-- Deferred scripts run in document order, so this one still runs before the app. -->
+    <script defer src="%BASE_URL%config.js"></script>
     <script>
       // Before first paint, so the page never flashes in the wrong theme.
       try {

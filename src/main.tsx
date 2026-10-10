@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { startTransition, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { startDemo } from './api/demo';
@@ -22,12 +22,16 @@ if (!root) throw new Error('index.html has no #root element');
 
 const { api, session, demo } = await startBackend();
 
-createRoot(root).render(
-  <StrictMode>
-    <Providers api={api} session={session} demo={demo}>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <AppRoutes />
-      </BrowserRouter>
-    </Providers>
-  </StrictMode>,
+const app = createRoot(root);
+// As a transition the first render is done in slices, so the page answers while it loads.
+startTransition(() =>
+  app.render(
+    <StrictMode>
+      <Providers api={api} session={session} demo={demo}>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <AppRoutes />
+        </BrowserRouter>
+      </Providers>
+    </StrictMode>,
+  ),
 );
