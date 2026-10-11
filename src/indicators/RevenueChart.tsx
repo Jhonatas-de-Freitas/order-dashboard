@@ -32,7 +32,8 @@ export function RevenueChart({ days }: { days: RevenueDay[] }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={days}
-            margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+            // Room on the right for half of the last day label, which is centred on its bar.
+            margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
             accessibilityLayer={false}
           >
             <CartesianGrid vertical={false} stroke="var(--line)" />
