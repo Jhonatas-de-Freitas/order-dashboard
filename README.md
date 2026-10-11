@@ -2,11 +2,13 @@
 
 [![ci](https://github.com/Jhonatas-de-Freitas/order-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Jhonatas-de-Freitas/order-dashboard/actions/workflows/ci.yml)
 
+Faz parte de um sistema de pedidos com 5 repositórios. Os outros 4: [order-platform](https://github.com/Jhonatas-de-Freitas/order-platform), [api-gateway](https://github.com/Jhonatas-de-Freitas/api-gateway), [notification-service](https://github.com/Jhonatas-de-Freitas/notification-service) e [order-analytics](https://github.com/Jhonatas-de-Freitas/order-analytics).
+
 ## O que é
 
 O painel web de uma loja fictícia. Nele eu faço um pedido e acompanho o que acontece depois: o estoque é reservado, o pagamento é cobrado e o pedido é confirmado ou cancelado. A tela muda sozinha, sem recarregar.
 
-É a parte visível de um sistema com mais quatro repositórios: [order-platform](https://github.com/Jhonatas-de-Freitas/order-platform), [api-gateway](https://github.com/Jhonatas-de-Freitas/api-gateway), [notification-service](https://github.com/Jhonatas-de-Freitas/notification-service) e [order-analytics](https://github.com/Jhonatas-de-Freitas/order-analytics). Para ninguém precisar subir tudo isso só para olhar, o painel tem dois modos:
+É a parte visível do sistema. Para ninguém precisar subir os outros repositórios só para olhar, o painel tem dois modos:
 
 - **Demonstração** (o padrão): um backend simulado roda dentro do navegador e segue as mesmas regras do sistema de verdade.
 - **Real**: fala com o `api-gateway` e faz login no Keycloak.
@@ -136,7 +138,7 @@ npm run test:e2e                          # Playwright no build de produção
 - **GitHub Pages**: o build com `/order-dashboard/` roda atrás de um servidor que responde como o Pages (`404.html` para rota interna).
 - **Imagem**: o CI constrói, sobe o container com variáveis diferentes do padrão e confere o `config.js`, a rota interna e os cabeçalhos.
 
-**Lighthouse.** Medi com o Lighthouse 13.5 no build de produção servido por `npm run preview`, na minha máquina, três vezes seguidas, em 10/10/2026. No perfil de celular (4G lento e CPU 4 vezes mais lenta, simulados): desempenho 97, 96 e 97, acessibilidade 100, boas práticas 100. No perfil de desktop: 100, 100 e 100.
+**Lighthouse.** Medi com o Lighthouse 13.5 na página inicial, no build de produção em modo demonstração servido por `npm run preview`, na minha máquina, três vezes seguidas, em 10/10/2026. No perfil de celular (4G lento e CPU 4 vezes mais lenta, simulados): desempenho 96 nas três, acessibilidade 100 e boas práticas 100. No perfil de desktop: desempenho 100 nas três.
 
 ## Decisões que tomei e por quê
 
@@ -148,7 +150,7 @@ npm run test:e2e                          # Playwright no build de produção
 - **Token no `sessionStorage`.** Vale para a aba e some quando ela fecha. É o meio-termo entre pedir login a cada recarga e deixar o token guardado para sempre.
 - **Configuração em `config.js`, não dentro do pacote.** O nginx responde esse arquivo com as variáveis do container. Se fossem trocadas no build, cada ambiente precisaria de uma imagem.
 - **Rotas com endereço limpo no GitHub Pages.** O Pages não reescreve rotas, então o `404.html` é uma cópia do app. A rota interna abre e recarrega, mas a primeira resposta sai com status 404. Para uma demonstração eu aceito; com `#` no endereço não aconteceria.
-- **Cor só para o estado do pedido.** O resto é tinta sobre papel. Azul, âmbar, verde e vermelho dizem em que ponto o pedido está, sempre com ícone e texto junto.
+- **Cor só para o estado do pedido.** O resto fica em tons neutros. Azul, âmbar, verde e vermelho dizem em que ponto o pedido está, sempre com ícone e texto junto.
 - **Faturamento por dia no calendário de quem olha.** O order-analytics agrupa por dia UTC, e no Brasil uma venda depois das 21h cairia na barra do dia seguinte, diferente da hora que a lista mostra. O painel pede o faturamento por hora e soma os dias no navegador.
 - **O gráfico só é baixado por quem abre Indicadores**, e a biblioteca de login só no modo real.
 
@@ -159,3 +161,7 @@ npm run test:e2e                          # Playwright no build de produção
 - Trocar as consultas periódicas do detalhe (notificações) e dos indicadores por um stream, quando esses serviços tiverem um.
 - O gateway aceita qualquer `customerId` na listagem. O filtro por cliente devia sair do token, no servidor.
 - Exportar os pedidos em CSV na tela de Indicadores.
+
+## Licença
+
+MIT. O texto está em [LICENSE](LICENSE).
